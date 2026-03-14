@@ -6,5 +6,185 @@ Install
 Cursor => https://cursor.com/download
 UV =>  powershell -ExecutionPolicy Bypass -c "irm https://astral.sh/uv/install.ps1 | iex"
 Claude Deskto=> https://claude.com/download
+                To Install claude desktop on windows 10, you need enable Developer mode 
+                settings -> update and security -> For Developers ->  Developer Mode -> On   ** This gave a big headache **. 
+
+
+pip install  mcp
+https://pypi.org/project/mcp/
+
+
+
+https://modelcontextprotocol.io/docs/develop/build-server
+
+
+
+Step 1 — Install Python
+Go to python.org/downloads
+Download Python 3.10 or higher
+Run the installer — check "Add Python to PATH" before clicking Install
+Verify by opening Command Prompt and running:
+
+python --version
+Command Prompt =>  powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+close and reopen command prompt -> uv --version
+
+uv init weather
+cd weather
+uv venv
+.venv\Scripts\activate
+uv add "mcp[cli]" httpx
+
+Inside the weather folder, create a file called weather.py and paste this complete code:
+from typing import Any
+import httpx
+from mcp.server.fastmcp import FastMCP
+
+mcp = FastMCP("weather")
+
+NWS_API_BASE = "https://api.weather.gov"
+USER_AGENT = "weather-app/1.0"
+
+async def make_nws_request(url: str) -> dict[str, Any] | None:
+    headers = {"User-Agent": USER_AGENT, "Accept": "application/geo+json"}
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(url, headers=headers, timeout=30.0)
+            response.raise_for_status()
+            return response.json()
+        except Exception:
+            return None
+
+def format_alert(feature: dict) -> str:
+    props = feature["properties"]
+    return f"""
+Event: {props.get("event", "Unknown")}
+Area: {props.get("areaDesc", "Unknown")}
+Severity: {props.get("severity", "Unknown")}
+Description: {props.get("description", "No description available")}
+Instructions: {props.get("instruction", "No specific instructions provided")}
+"""
+
+@mcp.tool()
+async def get_alerts(state: str) -> str:
+    """Get weather alerts for a US state.
+    Args:
+        state: Two-letter US state code (e.g. CA, NY)
+    """
+    url = f"{NWS_API_BASE}/alerts/active/area/{state}"
+    data = await make_nws_request(url)
+    if not data or "features" not in data:
+        return "Unable to fetch alerts or no alerts found."
+    if not data["features"]:
+        return "No active alerts for this state."
+    alerts = [format_alert(feature) for feature in data["features"]]
+    return "\n---\n".join(alerts)
+
+@mcp.tool()
+async def get_forecast(latitude: float, longitude: float) -> str:
+    """Get weather forecast for a location.
+    Args:
+        latitude: Latitude of the location
+        longitude: Longitude of the location
+    """
+    points_url = f"{NWS_API_BASE}/points/{latitude},{longitude}"
+    points_data = await make_nws_request(points_url)
+    if not points_data:
+        return "Unable to fetch forecast data for this location."
+    forecast_url = points_data["properties"]["forecast"]
+    forecast_data = await make_nws_request(forecast_url)
+    if not forecast_data:
+        return "Unable to fetch detailed forecast."
+    periods = forecast_data["properties"]["periods"]
+    forecasts = []
+    for period in periods[:5]:
+        forecast = f"""
+{period["name"]}:
+Temperature: {period["temperature"]}°{period["temperatureUnit"]}
+Wind: {period["windSpeed"]} {period["windDirection"]}
+Forecast: {period["detailedForecast"]}
+"""
+        forecasts.append(forecast)
+    return "\n---\n".join(forecasts)
+
+def main():
+    mcp.run(transport="stdio")
+
+if __name__ == "__main__":
+    main()
+```
+
+---
+
+## Step 5 — Find your project path
+
+In Command Prompt, while inside the `weather` folder, run:
+```
+cd
+```
+Copy the output — you'll need it in the next step. It will look something like:
+```
+C:\Users\Venkat\weather
+```
+
+---
+
+## Step 6 — Find the `uv` path
+
+Run this to get the full path to `uv`:
+```
+where uv
+```
+Copy the output, e.g. `C:\Users\Venkat\.cargo\bin\uv.exe`
+
+---
+
+## Step 7 — Update `claude_desktop_config.json`
+
+Open the file at:
+```
+C:\Users\Venkat\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude\claude_desktop_config.json
+
+add mcp servers enter and add weather
+
+{
+  "mcpServers": {
+    "weather": {
+      "command": "C:\\Users\\Venkat\\.local\\bin\\uv.exe",
+      "args": [
+        "--directory",
+        "C:\\Users\\Venkat\\weather",
+        "run",
+        "weather.py"
+      ]
+    }
+  }
+}
+
+In Claude Desktop, type:
+
+"What's the weather forecast for Dallas, TX?"
+"Are there any weather alerts in Texas?"
+
+Claude automatically discovers and uses MCP tools
+When Claude Desktop starts up, it reads your claude_desktop_config.json and launches all the MCP servers listed there. It then asks each server "what tools do you have?" — and your weather server responds with two tools: get_alerts and get_forecast.
+From that point on, Claude knows those tools exist and what they do — because of the descriptions you wrote in the code:
+python@mcp.tool()
+async def get_forecast(latitude: float, longitude: float) -> str:
+    """Get weather forecast for a location."""  # ← Claude reads this
+
+
+The config file tells Claude Desktop which servers to run. The docstrings in your code tell Claude what each tool does. Claude's AI then decides on its own when it's appropriate to call those tools — just like it decides when to search the web.
+
+
+Usually Issues:
+Path of the weather.py is not setup correctly ** Recheck this many times **
+
+Execution Poliy issues. 
+Set-ExecutionPolicy Unrestricted -Force
+
+Location of 
+C:\Users\Venkat\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude\claude_desktop_config.json
+C:\Users\Venkat\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude\logs\mcp-server-weather.log
 
 
