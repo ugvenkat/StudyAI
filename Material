@@ -1,2 +1,7 @@
 https://docs.crewai.com/
 https://docs.langchain.com/
+https://cursor.com/download
+
+
+Inistall UV =>  powershell -ExecutionPolicy Bypass -c "irm https://astral.sh/uv/install.ps1 | iex"
+
