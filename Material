@@ -187,4 +187,23 @@ Location of
 C:\Users\Venkat\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude\claude_desktop_config.json
 C:\Users\Venkat\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude\logs\mcp-server-weather.log
 
+My weather server works with any MCP-compatible client — not just Claude Desktop. Today that includes Claude Desktop, Cursor, VS Code, and more clients are adding support every day. 
+I built it once, it works everywhere.
 
+Client doesn't need to know the implementation
+Exactly like you said. The client only knows:
+
+Tool name → get_forecast
+What it does → "Get weather forecast for a location"
+What it needs → latitude, longitude
+
+It has no idea you're hitting the NWS API, how you're parsing the JSON, or anything else under the hood.
+
+3. Swap the implementation without breaking anything
+Tomorrow you could switch from NWS API to OpenWeatherMap or AccuWeather — and no client needs to change. They still just call get_forecast.
+
+4. Reusable across teams and projects
+If your company has a database, internal API, or business tool — wrap it in an MCP server once and every developer on the team can use it in their AI tools instantly.
+
+5. AI decides when to use it
+You don't have to tell Claude "use the weather tool." Claude figures it out on its own based on the conversation — making your tools feel like a natural extension of the AI.
