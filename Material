@@ -406,6 +406,11 @@ cd C:\study\employee
 uv run employee.py    or     uv run mcp dev employee.py
 it should run silently.
 
+** To automatically add entry in claude_desktop_config.json
+use the command 
+uv run mcp install server.py --name "employee"
+
+
 C:\Users\Venkat\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude\claude_desktop_config.json
 
 
