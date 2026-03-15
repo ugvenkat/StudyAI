@@ -604,4 +604,20 @@ What does report.pdf say about [topic]?
 
 
 
+NOTES
+Option 1 — Deactivate the old env first
+powershell deactivate
+uv add "mcp[cli]" pyodbc python-dotenv
+
+Option 2 — Use --active flag if you intentionally want the active env
+powershelluv add --active "mcp[cli]" pyodbc python-dotenv
+
+To verify the packages are in your project's env:
+
+powershelluv run python -c "import mcp, pyodbc, dotenv; print('All good!')"
+
+Is everything working as expected for your leave manager MCP server, or are you running into any other issues?
+
+
+
 
