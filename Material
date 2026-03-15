@@ -427,3 +427,181 @@ Get employee with ID 1
 Add a new employee named John Doe with salary 72000
 Update salary for employee ID 2 to 90000
 Delete employee with ID 3
+
+
+** TO build a PDF File Reader MCP server  **
+cd C:\study
+uv init filereader
+cd filereader
+uv venv
+uv add "mcp[cli]" pymupdf python-dotenv openai
+mkdir C:\study\filereader\pdfs
+
+.env
+OPENAI_API_KEY=your-openai-api-key-here
+PDF_FOLDER=C:\study\filereader\pdfs
+
+C:\study\filereader\filereader.py
+import os
+import fitz  # pymupdf
+from openai import OpenAI
+from mcp.server.fastmcp import FastMCP
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+mcp = FastMCP("filereader")
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+PDF_FOLDER = os.getenv("PDF_FOLDER", "C:\\study\\filereader\\pdfs")
+
+def read_pdf(file_path: str) -> str:
+    """Extract text from a PDF file."""
+    try:
+        doc = fitz.open(file_path)
+        text = ""
+        for page in doc:
+            text += page.get_text()
+        doc.close()
+        return text
+    except Exception as e:
+        return f"Error reading PDF: {str(e)}"
+
+# LIST - List all PDFs in the folder
+@mcp.tool()
+def list_pdf_files() -> str:
+    """List all PDF files available in the PDF folder."""
+    try:
+        files = [f for f in os.listdir(PDF_FOLDER) if f.endswith(".pdf")]
+        if not files:
+            return f"No PDF files found in {PDF_FOLDER}"
+        result = "Available PDF files:\n"
+        for i, file in enumerate(files, 1):
+            result += f"{i}. {file}\n"
+        return result
+    except Exception as e:
+        return f"Error listing files: {str(e)}"
+
+# READ - Read and display PDF contents
+@mcp.tool()
+def read_pdf_file(filename: str) -> str:
+    """Read and display the contents of a PDF file.
+    Args:
+        filename: Name of the PDF file (e.g. report.pdf)
+    """
+    try:
+        file_path = os.path.join(PDF_FOLDER, filename)
+        if not os.path.exists(file_path):
+            return f"File '{filename}' not found in {PDF_FOLDER}"
+        text = read_pdf(file_path)
+        # Limit to first 3000 characters to avoid overwhelming output
+        if len(text) > 3000:
+            return text[:3000] + "\n\n... (truncated, use summarize or ask questions for more)"
+        return text
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+# SUMMARIZE - Summarize PDF using OpenAI
+@mcp.tool()
+def summarize_pdf(filename: str) -> str:
+    """Summarize the contents of a PDF file using AI.
+    Args:
+        filename: Name of the PDF file (e.g. report.pdf)
+    """
+    try:
+        file_path = os.path.join(PDF_FOLDER, filename)
+        if not os.path.exists(file_path):
+            return f"File '{filename}' not found in {PDF_FOLDER}"
+        text = read_pdf(file_path)
+        # Limit text to avoid OpenAI token limits
+        text = text[:8000]
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant that summarizes documents clearly and concisely."
+                },
+                {
+                    "role": "user",
+                    "content": f"Please summarize this document:\n\n{text}"
+                }
+            ]
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+# ASK - Ask a question about the PDF
+@mcp.tool()
+def ask_question_about_pdf(filename: str, question: str) -> str:
+    """Ask a question about the contents of a PDF file.
+    Args:
+        filename: Name of the PDF file (e.g. report.pdf)
+        question: The question you want to ask about the file
+    """
+    try:
+        file_path = os.path.join(PDF_FOLDER, filename)
+        if not os.path.exists(file_path):
+            return f"File '{filename}' not found in {PDF_FOLDER}"
+        text = read_pdf(file_path)
+        # Limit text to avoid OpenAI token limits
+        text = text[:8000]
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant that answers questions about documents accurately."
+                },
+                {
+                    "role": "user",
+                    "content": f"Based on this document:\n\n{text}\n\nAnswer this question: {question}"
+                }
+            ]
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+def main():
+    mcp.run(transport="stdio")
+
+if __name__ == "__main__":
+    main()
+
+
+Test it manually
+cd C:\study\filereader
+uv run filereader.py
+Should sit silently 
+
+update claude_desktop_config.json
+    "filereader": {
+      "command": "C:\\Users\\Venkat\\.local\\bin\\uv.exe",
+      "args": [
+        "--directory",
+        "C:\\study\\filereader",
+        "run",
+        "filereader.py"
+      ]
+    }
+
+ Restart Claude Desktop
+
+Copy any PDF file into:
+C:\study\filereader\pdfs
+
+
+Test with natural language commands
+List all PDF files available
+Read the contents of report.pdf
+Summarize report.pdf"
+What is the main topic of report.pdf?
+What does report.pdf say about [topic]?
+
+
+
+
+
