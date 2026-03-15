@@ -207,3 +207,223 @@ If your company has a database, internal API, or business tool — wrap it in an
 
 5. AI decides when to use it
 You don't have to tell Claude "use the weather tool." Claude figures it out on its own based on the conversation — making your tools feel like a natural extension of the AI.
+
+
+
+** EMPLOYEE  CRUD MCP Server **
+CREATE DATABASE EmployeeDB;
+GO
+
+-- Use the database
+USE EmployeeDB;
+GO
+
+-- Create employee table
+CREATE TABLE Employee (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    name VARCHAR(100) NOT NULL,
+    salary DECIMAL(10,2) NOT NULL
+);
+GO
+
+-- Insert sample data
+INSERT INTO Employee (name, salary) VALUES ('Alice Johnson', 75000);
+INSERT INTO Employee (name, salary) VALUES ('Bob Smith', 82000);
+INSERT INTO Employee (name, salary) VALUES ('Carol White', 91000);
+INSERT INTO Employee (name, salary) VALUES ('David Brown', 67000);
+INSERT INTO Employee (name, salary) VALUES ('Eve Davis', 95000);
+GO
+
+
+Grant access to Admin1 user.
+ALTER ROLE db_datareader ADD MEMBER admin1
+ALTER ROLE db_datawriter ADD MEMBER admin1
+
+
+Command Prompt and run:
+cd C:\study
+uv init employee
+cd employee
+uv venv
+.venv\Scripts\activate
+uv add "mcp[cli]" pyodbc python-dotenv
+
+
+.env 
+DB_SERVER=localhost
+DB_NAME=EmployeeDB
+DB_DRIVER=ODBC Driver 17 for SQL Server
+DB_USER=admin1
+DB_PASSWORD=passwordbac
+
+
+employee.py 
+import os
+import pyodbc
+from mcp.server.fastmcp import FastMCP
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+mcp = FastMCP("employee")
+
+def get_connection():
+    conn_str = (
+        f"DRIVER={{{os.getenv('DB_DRIVER')}}};"
+        f"SERVER={os.getenv('DB_SERVER')};"
+        f"DATABASE={os.getenv('DB_NAME')};"
+        f"UID={os.getenv('DB_USER')};"
+        f"PWD={os.getenv('DB_PASSWORD')};"
+    )
+    return pyodbc.connect(conn_str)
+
+# READ - Get all employees
+@mcp.tool()
+def get_all_employees() -> str:
+    """Get all employees from the database."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, name, salary FROM Employee")
+        rows = cursor.fetchall()
+        conn.close()
+        if not rows:
+            return "No employees found."
+        result = "Employees:\n"
+        for row in rows:
+            result += f"ID: {row[0]}, Name: {row[1]}, Salary: ${row[2]:,.2f}\n"
+        return result
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+# READ - Get employee by ID
+@mcp.tool()
+def get_employee_by_id(employee_id: int) -> str:
+    """Get a specific employee by their ID.
+    Args:
+        employee_id: The ID of the employee
+    """
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, name, salary FROM Employee WHERE id = ?", employee_id)
+        row = cursor.fetchone()
+        conn.close()
+        if not row:
+            return f"No employee found with ID {employee_id}."
+        return f"ID: {row[0]}, Name: {row[1]}, Salary: ${row[2]:,.2f}"
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+# CREATE - Add new employee
+@mcp.tool()
+def add_employee(name: str, salary: float) -> str:
+    """Add a new employee to the database.
+    Args:
+        name: Full name of the employee
+        salary: Salary of the employee
+    """
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO Employee (name, salary) VALUES (?, ?)", name, salary)
+        conn.commit()
+        conn.close()
+        return f"Employee '{name}' added successfully with salary ${salary:,.2f}"
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+# UPDATE - Update employee salary
+@mcp.tool()
+def update_employee_salary(employee_id: int, new_salary: float) -> str:
+    """Update the salary of an existing employee.
+    Args:
+        employee_id: The ID of the employee to update
+        new_salary: The new salary amount
+    """
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE Employee SET salary = ? WHERE id = ?", new_salary, employee_id)
+        if cursor.rowcount == 0:
+            return f"No employee found with ID {employee_id}."
+        conn.commit()
+        conn.close()
+        return f"Employee ID {employee_id} salary updated to ${new_salary:,.2f}"
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+# UPDATE - Update employee name
+@mcp.tool()
+def update_employee_name(employee_id: int, new_name: str) -> str:
+    """Update the name of an existing employee.
+    Args:
+        employee_id: The ID of the employee to update
+        new_name: The new name of the employee
+    """
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("UPDATE Employee SET name = ? WHERE id = ?", new_name, employee_id)
+        if cursor.rowcount == 0:
+            return f"No employee found with ID {employee_id}."
+        conn.commit()
+        conn.close()
+        return f"Employee ID {employee_id} name updated to '{new_name}'"
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+# DELETE - Delete employee
+@mcp.tool()
+def delete_employee(employee_id: int) -> str:
+    """Delete an employee from the database.
+    Args:
+        employee_id: The ID of the employee to delete
+    """
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM Employee WHERE id = ?", employee_id)
+        if cursor.rowcount == 0:
+            return f"No employee found with ID {employee_id}."
+        conn.commit()
+        conn.close()
+        return f"Employee ID {employee_id} deleted successfully."
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+def main():
+    mcp.run(transport="stdio")
+
+if __name__ == "__main__":
+    main()
+
+
+
+now run 
+cd C:\study\employee
+uv run employee.py
+it should run silently.
+
+C:\Users\Venkat\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude\claude_desktop_config.json
+
+
+add employee to claude_desktop_config.json
+    "employee": {
+      "command": "C:\\Users\\Venkat\\.local\\bin\\uv.exe",
+      "args": [
+        "--directory",
+        "C:\\study\\employee",
+        "run",
+        "employee.py"
+      ]
+    }
+
+Restart Claude Desktop
+Test with Claude! in simple english.
+Show me all employees
+Get employee with ID 1
+Add a new employee named John Doe with salary 72000
+Update salary for employee ID 2 to 90000
+Delete employee with ID 3
