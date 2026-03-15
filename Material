@@ -614,7 +614,7 @@ powershelluv add --active "mcp[cli]" pyodbc python-dotenv
 
 To verify the packages are in your project's env:
 
-powershelluv run python -c "import mcp, pyodbc, dotenv; print('All good!')"
+powershell uv run python -c "import mcp, pyodbc, dotenv; print('All good!')"
 
 Is everything working as expected for your leave manager MCP server, or are you running into any other issues?
 
