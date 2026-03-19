@@ -625,4 +625,36 @@ Is everything working as expected for your leave manager MCP server, or are you 
 
 
 
+** LangGraph.
+To get Started with LangGraph.
+https://academy.langchain.com/courses/langgraph-essentials-python
+
+
+# Clone the repo, cd to 'python' directory
+git clone https://github.com/langchain-ai/lca-langgraph-essentials.git
+cd ./lca-langgraph-essentials/python
+cp example.env .env
+Contents of .env file
+# API Keys for LangChain providers
+OPENAI_API_KEY=openai_api_key_here
+# The course is written using OpenAI models. You can use other models if you prefer. 
+#Remember to change the code that calls the model and add their keys
+#ANTHROPIC_API_KEY=your_anthropic_api_key_here
+
+# Optional: LangSmith tracing
+LANGSMITH_TRACING_V2=true
+LANGSMITH_ENDPOINT=https://api.smith.langchain.com
+LANGSMITH_API_KEY=your_langsmith_api_key_here
+LANGSMITH_PROJECT=langgraph-py-essentials
+
+
+# Make sure you're in the repo root (not /python)
+cd C:\Study\lca-langgraph-essentials
+python -m venv .venv
+.venv\Scripts\activate
+
+cd Python
+pip install -r requirements.txt
+
+
 
